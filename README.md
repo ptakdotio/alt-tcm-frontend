@@ -14,9 +14,9 @@ available, which is what this script does.
 
 ## How do I use it?
 
-The simplest invocation is simply `python gimme-tcm-movies.py`. This will print
-out a summary of all movies available to watch, including the title,
-description, and year they were released.
+The simplest invocation is `python gimme-tcm-movies.py`. This will print out a
+summary of all movies available to watch, including the title, description, and
+year they were released.
 
 You can filter the list based on genre and year of release. For example, I like
 to watch Crime, Mystery, and Thriller movies from the 1930s and 40s. I invoke
