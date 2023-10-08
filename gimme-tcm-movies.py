@@ -30,7 +30,7 @@ def file_age(filename):
 
 
 def get_tcm_movies_list():
-    if os.path.exists(TCM_MOVIES_JSON) and file_age(TCM_MOVIES_JSON) < (24 * 60 * 60):
+    if os.path.exists(TCM_MOVIES_JSON) and file_age(TCM_MOVIES_JSON) < (60 * 60):
         with open(TCM_MOVIES_JSON, 'r') as f:
             movies = json.load(f)
     else:
