@@ -43,12 +43,12 @@ def get_tcm_movies_list():
 
 
 def main():
-    parser = ArgumentParser()
-    parser.add_argument('--before-year', type=int)
-    parser.add_argument('--after-year', type=int)
-    parser.add_argument('--genres', type=tcm_genres)
-    parser.add_argument('--list-genres', action='store_true')
-    parser.add_argument('--html', action='store_true')
+    parser = ArgumentParser(description='A command-line interface to TCM\'s API')
+    parser.add_argument('--before-year', type=int, metavar='YEAR', help='show movies released before this year')
+    parser.add_argument('--after-year', type=int, metavar='YEAR', help='show movies released after this year')
+    parser.add_argument('--genres', type=tcm_genres, help='show movies in these genres')
+    parser.add_argument('--list-genres', action='store_true', help='list all valid genres')
+    parser.add_argument('--html', action='store_true', help='format output as an HTML table')
     args = parser.parse_args()
 
     if args.list_genres:
