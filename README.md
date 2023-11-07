@@ -6,6 +6,10 @@ This is a simple frontend webpage for checking what movies are available to
 watch on TCM. It uses TCM's API, but adds filters so you can pare down the
 list.
 
+## How do I use it?
+
+Just go to <http://tcm.ptak.io/> and give it a try!
+
 ## Why did you make this?
 
 I find TCM's web interface a little bit cumbersome to use. You can't filter on
