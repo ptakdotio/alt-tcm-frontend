@@ -130,6 +130,11 @@ view model =
         Loading         -> Html.text "Loading..."
         Failed error    -> Html.text ("Failed to load movies: " ++ explain error)
         Loaded explorer -> viewExplorer explorer
+    , Html.small []
+      [ Html.text "Created by "
+      , Html.a [ Attributes.href "mailto:christopher@ptak.io" ] [ Html.text "Christopher Ptak" ]
+      , Html.text ". Email me for bug reports or feature requests."
+      ]
     ]
   }
 
