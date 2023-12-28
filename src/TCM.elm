@@ -46,7 +46,8 @@ type alias Filters =
   }
 
 type alias Movie =
-  { title       : String
+  { titleId     : Int
+  , title       : String
   , genres      : Set String
   , releaseYear : Int
   , description : Maybe String
@@ -209,10 +210,16 @@ viewTable movies =
         , Html.th [ Attributes.style "width" "70%" ] [ Html.text "Description" ]
         ]
 
+    linkTo movie = "https://www.tcm.com/watchtcm/titles/" ++ (String.fromInt movie.titleId)
+
     tableRow movie =
       Html.tr
         []
-        [ Html.td [] [ Html.text (movie.title) ]
+        [ Html.td []
+          [ Html.a
+            [ Attributes.href (linkTo movie) ]
+            [ Html.text movie.title ]
+          ]
         , Html.td [] [ Html.text (String.fromInt movie.releaseYear) ]
         , Html.td [] [ Html.text (Maybe.withDefault "" movie.description) ]
         ]
@@ -275,7 +282,8 @@ decodeMovies = Decode.at ["tcm", "titles"] (Decode.list decodeMovie)
 
 decodeMovie : Decoder Movie
 decodeMovie =
-  Decode.map4 Movie
+  Decode.map5 Movie
+    (Decode.field "titleId"     (Decode.int))
     (Decode.field "name"        (Decode.string))
     (Decode.field "tvGenresArr" (Decode.map Set.fromList (Decode.list Decode.string)))
     (Decode.field "releaseYear" (Decode.int))
