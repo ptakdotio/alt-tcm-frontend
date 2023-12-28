@@ -154,8 +154,7 @@ viewExplorer explorer =
 viewFilters : Filters -> Html FilterMsg
 viewFilters filters =
   Html.form []
-    [ Html.h2 [] [ Html.text "Filters" ]
-    , Html.div []
+    [ Html.div []
       [ Html.label
         [ Attributes.for "year-minimum" ]
         [ Html.text "Minimum Release Year" ]
