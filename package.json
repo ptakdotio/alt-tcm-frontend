@@ -12,5 +12,8 @@
     "sass": "^1.69.5",
     "vite": "^4.4.5",
     "vite-plugin-elm": "^2.8.0"
+  },
+  "dependencies": {
+    "elm": "^0.19.1-6"
   }
 }

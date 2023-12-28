@@ -204,9 +204,9 @@ viewTable movies =
   let
     tableHeader =
       Html.tr []
-        [ Html.th [] [ Html.text "Title" ]
-        , Html.th [] [ Html.text "Release Year" ]
-        , Html.th [] [ Html.text "Description" ]
+        [ Html.th [ Attributes.style "width" "20%" ] [ Html.text "Title" ]
+        , Html.th [ Attributes.style "width" "10%" ] [ Html.text "Release Year" ]
+        , Html.th [ Attributes.style "width" "70%" ] [ Html.text "Description" ]
         ]
 
     tableRow movie =
