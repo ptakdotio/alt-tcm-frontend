@@ -127,8 +127,8 @@ view model =
   , body  =
     [ Html.h1 [] [ Html.text "TCM Movies" ]
     , case model of
-        Loading         -> Html.text "Loading..."
-        Failed error    -> Html.text ("Failed to load movies: " ++ explain error)
+        Loading         -> Html.div [] [Html.text "Loading..."]
+        Failed error    -> Html.div [] [Html.text ("Failed to load movies: " ++ explain error)]
         Loaded explorer -> viewExplorer explorer
     , Html.small []
       [ Html.text "Created by "
