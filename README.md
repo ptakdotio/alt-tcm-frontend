@@ -1,4 +1,4 @@
-# Gimme TCM Movies
+# Alternative TCM Frontend
 
 ## What is this?
 
@@ -8,13 +8,13 @@ list.
 
 ## How do I use it?
 
-Just go to <http://tcm.ptak.io/> and give it a try!
+Just [click here](http://tcm.ptak.io/) and give it a try!
 
 ## Why did you make this?
 
-I find TCM's web interface a little bit cumbersome to use. You can't filter on
-every available genre or by release year, and clicking on a movie takes you to
-a new webpage. I would rather just see a filterable, sortable list of what is
+I find TCM's web interface kind of cumbersome. You can't filter on more than
+one genre or by release year, and clicking on a movie takes you to a new
+webpage. I would rather just see a filterable, sortable list of what is
 available, which is what this page does.
 
 ## Why isn't there an option to filter by such-and-such?
