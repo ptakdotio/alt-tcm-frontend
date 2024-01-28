@@ -28,21 +28,13 @@ main =
 --- Model
 --
 
-type Model
-  = Loading
-  | Loaded Explorer
-  | Failed (Http.Error)
-
-type alias Explorer =
-  { filters : Filters
-  , movies  : List Movie
-  }
-
-type alias Filters =
+type alias Model =
   { yearMinimum     : Maybe Int
   , yearMaximum     : Maybe Int
   , genresSelected  : Set String
   , genresAvailable : Set String
+  , moviesAvailable : Loadable (List Movie)
+  , moviesShown     : List Movie
   }
 
 type alias Movie =
@@ -51,23 +43,24 @@ type alias Movie =
   , genres      : Set String
   , releaseYear : Int
   , description : Maybe String
+  , runtime     : Maybe String
+  , rating      : Maybe String
+  , thumbnail   : String
   }
 
 
 init : () -> (Model, Cmd Msg)
-init = always (Loading, getMovies)
-
-
-initExplorer : List Movie -> Explorer
-initExplorer movies =
-  { filters =
-    { yearMinimum     = Nothing
+init () =
+  ( { yearMinimum     = Nothing
     , yearMaximum     = Nothing
     , genresSelected  = Set.empty
-    , genresAvailable = List.foldl Set.union Set.empty (List.map (.genres) movies)
+    , genresAvailable = Set.empty
+    , moviesAvailable = LoadingInProgress
+    , moviesShown     = []
     }
-  , movies = movies
-  }
+  , getMovies
+  )
+
 
 
 ----
@@ -76,45 +69,81 @@ initExplorer movies =
 
 type Msg
   = GotMovies (Result Http.Error (List Movie))
-  | UpdateFilters FilterMsg
-
-type FilterMsg
-  = SetYearMinimum (Maybe Int)
+  | SetYearMinimum (Maybe Int)
   | SetYearMaximum (Maybe Int)
   | DelGenre String
   | AddGenre String
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update msg model = case model of
-
-  Loading -> case msg of
-
+update msg model =
+  case msg of
     GotMovies result ->
       case result of
-        Ok movies   -> (Loaded (initExplorer movies), Cmd.none)
-        Err problem -> (Failed problem,               Cmd.none)
+        Ok movies   -> (moviesChanged { model | moviesAvailable = Loaded movies }, Cmd.none)
+        Err problem -> ({ model | moviesAvailable = LoadingFailed problem }, Cmd.none)
 
-    _ -> (model, Cmd.none)
+    SetYearMinimum year -> (filtersChanged { model | yearMinimum = year }, Cmd.none)
+    SetYearMaximum year -> (filtersChanged { model | yearMaximum = year }, Cmd.none)
+    AddGenre genre      -> (filtersChanged { model | genresSelected = Set.insert genre model.genresSelected }, Cmd.none)
+    DelGenre genre      -> (filtersChanged { model | genresSelected = Set.remove genre model.genresSelected }, Cmd.none)
 
-  Loaded explorer -> case msg of
 
-    UpdateFilters change ->
-      let
-        filters = explorer.filters
-        updated = case change of
-          SetYearMinimum year -> { filters | yearMinimum = year }
-          SetYearMaximum year -> { filters | yearMaximum = year }
-          AddGenre genre      -> { filters | genresSelected = Set.insert genre filters.genresSelected }
-          DelGenre genre      -> { filters | genresSelected = Set.remove genre filters.genresSelected }
-      in
-        ( Loaded { explorer | filters = updated }
-        , Cmd.none
-        )
+moviesChanged : Model -> Model
+moviesChanged model =
+  let
+    moviesAvailable : List Movie
+    moviesAvailable =
+      case model.moviesAvailable of
+        Loaded movies -> movies
+        _             -> []
 
-    _ -> (model, Cmd.none)
+    mergeSets : List (Set comparable) -> Set comparable
+    mergeSets = List.foldl Set.union Set.empty
+  in
+    { model
+    | genresAvailable = mergeSets <| List.map (.genres) moviesAvailable
+    , moviesShown     = List.filter (matchesFilters model) moviesAvailable
+    }
 
-  _ -> (model, Cmd.none)
+
+filtersChanged : Model -> Model
+filtersChanged model =
+  case model.moviesAvailable of
+    Loaded movies -> { model | moviesShown = List.filter (matchesFilters model) movies }
+    _             -> model
+
+
+matchesFilters : Model -> Movie -> Bool
+matchesFilters filters movie =
+  let
+    overlap : List a -> List a -> Bool
+    overlap listA listB = List.any (hasMember listA) listB
+
+    hasMember : List a -> a -> Bool
+    hasMember xs x = List.member x xs
+
+    matchYearMinimum : Bool
+    matchYearMinimum =
+      case filters.yearMinimum of
+        Just year -> movie.releaseYear >= year
+        Nothing   -> True
+
+    matchYearMaximum : Bool
+    matchYearMaximum =
+      case filters.yearMaximum of
+        Just year -> movie.releaseYear <= year
+        Nothing   -> True
+
+    matchGenres : Bool
+    matchGenres =
+      (Set.isEmpty filters.genresSelected) ||
+      (Set.intersect filters.genresSelected movie.genres |> Set.isEmpty |> not)
+  in
+    matchYearMinimum &&
+    matchYearMaximum &&
+    matchGenres
+
 
 
 ----
@@ -123,77 +152,72 @@ update msg model = case model of
 
 view : Model -> Browser.Document Msg
 view model =
-  { title = "TCM Movies"
+  { title = "TCM Films"
   , body  =
-    [ Html.h1 [] [ Html.text "TCM Movies" ]
-    , case model of
-        Loading         -> Html.div [] [Html.text "Loading..."]
-        Failed error    -> Html.div [] [Html.text ("Failed to load movies: " ++ explain error)]
-        Loaded explorer -> viewExplorer explorer
+    [ Html.header []
+      [ Html.h1 [] [ Html.text "TCM Films" ]
+      , Html.hr [] []
+      , viewFilters model
+      ]
+
+    , case model.moviesAvailable of
+        LoadingInProgress   -> Html.div [] [Html.text "Loading..."]
+        LoadingFailed error -> Html.div [] [Html.text ("Failed to load movies: " ++ explain error)]
+        Loaded _ ->
+          Html.div
+            [ Attributes.id "movies" ]
+            (List.map viewMovie model.moviesShown)
+        
     , Html.small []
       [ Html.text "Created by "
-      , Html.a [ Attributes.href "mailto:christopher@ptak.io" ] [ Html.text "Christopher Ptak" ]
+      , Html.a
+        [ Attributes.href "mailto:christopher@ptak.io" ]
+        [ Html.text "Christopher Ptak" ]
       , Html.text ". Email me for bug reports or feature requests."
       ]
     ]
   }
 
 
-viewExplorer : Explorer -> Html Msg
-viewExplorer explorer =
-  Html.div [] <|
-    let
-      filters = Html.map UpdateFilters (viewFilters explorer.filters)
-      movies  = List.filter (applyFilters explorer.filters) explorer.movies
-    in
-      [ filters
-      , viewTable movies
-      ]
-
-
-viewFilters : Filters -> Html FilterMsg
-viewFilters filters =
+viewFilters : Model -> Html Msg
+viewFilters model =
   Html.form []
-    [ Html.div []
-      [ Html.label
-        [ Attributes.for "year-minimum" ]
-        [ Html.text "Minimum Release Year" ]
-      , Html.input
-        [ Attributes.id "year-minimum"
-        , Events.onInput (SetYearMinimum << String.toInt)
-        ]
-        []
+    [ Html.label
+      [ Attributes.for "year-minimum" ]
+      [ Html.text "Released after" ]
+    , Html.input
+      [ Attributes.id "year-minimum"
+      , Events.onInput (SetYearMinimum << String.toInt)
       ]
-    , Html.div []
-      [ Html.label
-        [ Attributes.for "year-maximum" ]
-        [ Html.text "Maximum Release Year" ]
-      , Html.input
-        [ Attributes.id "year-maximum"
-        , Events.onInput (SetYearMaximum << String.toInt)
-        ]
-        []
+      []
+    , Html.label
+      [ Attributes.for "year-maximum" ]
+      [ Html.text "Released before" ]
+    , Html.input
+      [ Attributes.id "year-maximum"
+      , Events.onInput (SetYearMaximum << String.toInt)
       ]
-    , Html.div []
-      [ Html.label
-        [ Attributes.for "genres" ]
-        [ Html.text "Filter by Genre" ]
-      , Html.select
-        [ Events.on "change" (Decode.map AddGenre Events.targetValue) ]
-        ( [ Html.option [] [ Html.text "Choose a genre" ] ] ++
-          (List.map viewGenreOption <| Set.toList filters.genresAvailable) )
-      , Html.ul []
-        (List.map viewGenreSelected <| Set.toList filters.genresSelected)
-      ]
+      []
+    , Html.label
+      [ Attributes.for "genres" ]
+      [ Html.text "Filter by Genre" ]
+    , Html.select
+      [ Events.on "change" (Decode.map AddGenre Events.targetValue) ]
+      ( [ Html.option [] [ Html.text "Choose a genre" ] ] ++
+        (List.map viewGenreOption <| Set.toList model.genresAvailable) )
+    , Html.ul []
+      (List.map viewGenreSelected <| Set.toList model.genresSelected)
     ]
 
-viewGenreOption : String -> Html FilterMsg
+
+viewGenreOption : String -> Html Msg
 viewGenreOption genre =
   Html.option
     [ Attributes.value genre ]
     [ Html.text genre ]
 
-viewGenreSelected : String -> Html FilterMsg
+
+viewGenreSelected : String -> Html Msg
 viewGenreSelected genre =
   Html.li []
     [ Html.a
@@ -204,61 +228,39 @@ viewGenreSelected genre =
     ]
 
 
-viewTable : List Movie -> Html Msg
-viewTable movies =
+viewMovie : Movie -> Html Msg
+viewMovie movie =
   let
-    tableHeader =
-      Html.tr []
-        [ Html.th [ Attributes.style "width" "20%" ] [ Html.text "Title" ]
-        , Html.th [ Attributes.style "width" "10%" ] [ Html.text "Release Year" ]
-        , Html.th [ Attributes.style "width" "70%" ] [ Html.text "Description" ]
-        ]
+    link = "https://www.tcm.com/watchtcm/titles/" ++ (String.fromInt movie.titleId)
 
-    linkTo movie = "https://www.tcm.com/watchtcm/titles/" ++ (String.fromInt movie.titleId)
-
-    tableRow movie =
-      Html.tr
+    releaseYear = String.fromInt movie.releaseYear
+    runtime     = movie.runtime |> Maybe.map ((++) " | ") |> Maybe.withDefault ""
+    rating      = movie.rating  |> Maybe.map ((++) " | ") |> Maybe.withDefault ""
+  in
+    Html.div
+      []
+      [ Html.img [ Attributes.src movie.thumbnail ] []
+      , Html.div
         []
-        [ Html.td []
-          [ Html.a
-            [ Attributes.href (linkTo movie) ]
-            [ Html.text movie.title ]
+        [ Html.a [ Attributes.href link ] [ Html.text movie.title ]
+        , Html.div [] [ Html.text (releaseYear ++ runtime ++ rating) ]
+        , Html.div []
+          [ case movie.description of
+              Nothing   -> Html.i [] [ Html.text "No description" ]
+              Just text -> Html.text text
           ]
-        , Html.td [] [ Html.text (String.fromInt movie.releaseYear) ]
-        , Html.td [] [ Html.text (Maybe.withDefault "" movie.description) ]
         ]
-  in
-    Html.table []
-     (tableHeader :: List.map tableRow movies)
+      ]
 
 
-applyFilters : Filters -> Movie -> Bool
-applyFilters filters movie =
-  let
-    matchYearMinimum =
-      case filters.yearMinimum of
-        Just year -> movie.releaseYear >= year
-        Nothing   -> True
+----
+--- Loadable support
+--
 
-    matchYearMaximum =
-      case filters.yearMaximum of
-        Just year -> movie.releaseYear <= year
-        Nothing   -> True
-
-    matchGenres =
-      (Set.isEmpty filters.genresSelected) ||
-      (Set.intersect filters.genresSelected movie.genres |> Set.isEmpty |> not)
-  in
-    matchYearMinimum &&
-    matchYearMaximum &&
-    matchGenres
-
-
-overlap : List a -> List a -> Bool
-overlap listA listB = List.any (hasMember listA) listB
-
-hasMember : List a -> a -> Bool
-hasMember xs x = List.member x xs
+type Loadable a
+  = LoadingInProgress
+  | LoadingFailed Http.Error
+  | Loaded a
 
 
 explain : Http.Error -> String
@@ -268,6 +270,10 @@ explain error = case error of
   Http.NetworkError   -> "Network error" 
   Http.BadStatus code -> "HTTP error " ++ String.fromInt code
   Http.BadBody reason -> "Bad response: " ++ reason
+
+
+
+
 
 
 ----
@@ -281,15 +287,53 @@ getMovies =
     , expect = Http.expectJson GotMovies decodeMovies
     }
 
+
 decodeMovies : Decoder (List Movie)
 decodeMovies = Decode.at ["tcm", "titles"] (Decode.list decodeMovie)
 
+
 decodeMovie : Decoder Movie
 decodeMovie =
-  Decode.map5 Movie
-    (Decode.field "titleId"     (Decode.int))
-    (Decode.field "name"        (Decode.string))
-    (Decode.field "tvGenresArr" (Decode.map Set.fromList (Decode.list Decode.string)))
-    (Decode.field "releaseYear" (Decode.int))
-    (Decode.field "description" (Decode.nullable Decode.string))
+  Decode.map8 Movie
+    (Decode.field "titleId"          (Decode.int))
+    (Decode.field "name"             (Decode.string))
+    (Decode.field "tvGenresArr"      (Decode.map Set.fromList (Decode.list Decode.string)))
+    (Decode.field "releaseYear"      (Decode.int))
+    (Decode.field "description"      (Decode.nullable Decode.string))
+    (Decode.field "alternateRuntime" (Decode.nullable Decode.string))
+    (Decode.field "tvRating"         (Decode.nullable Decode.string))
+    (Decode.field "imageProfiles"    (decodeThumbnailUrl))
+
+
+type alias Thumbnail =
+  { width  : Int
+  , height : Int
+  , url    : String
+  , usage  : String
+  }
+
+
+decodeThumbnailUrl : Decoder String
+decodeThumbnailUrl =
+  let
+
+    decodeThumbnail : Decoder Thumbnail
+    decodeThumbnail =
+      Decode.map4 Thumbnail
+        (Decode.field "width"  Decode.int)
+        (Decode.field "height" Decode.int)
+        (Decode.field "url"    Decode.string)
+        (Decode.field "usage"  Decode.string)
+
+    resolution : Thumbnail -> Int
+    resolution thumbnail = thumbnail.width * thumbnail.height
+
+    chooseUrl : List Thumbnail -> String
+    chooseUrl thumbnails =
+      case List.filter (.usage >> ((==) "homepageExploreThumb")) thumbnails of
+        first :: _ -> first.url ++ "?w=" ++ (String.fromInt first.width) ++ "&h=" ++ (String.fromInt first.height)
+        []        -> "https://prod-images.tcm.com/img/global/placeholder-films.png?w=319&h=180"
+
+  in
+    Decode.map chooseUrl (Decode.list decodeThumbnail)
 
