@@ -239,7 +239,9 @@ viewMovie movie =
   in
     Html.div
       []
-      [ Html.img [ Attributes.src movie.thumbnail ] []
+      [ Html.a
+        [ Attributes.href link ]
+        [ Html.img [ Attributes.src movie.thumbnail ] [] ]
       , Html.div
         []
         [ Html.a [ Attributes.href link ] [ Html.text movie.title ]
@@ -270,10 +272,6 @@ explain error = case error of
   Http.NetworkError   -> "Network error" 
   Http.BadStatus code -> "HTTP error " ++ String.fromInt code
   Http.BadBody reason -> "Bad response: " ++ reason
-
-
-
-
 
 
 ----

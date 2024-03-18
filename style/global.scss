@@ -33,6 +33,7 @@ form {
   & > label {
     grid-column: label;
     align-self: center;
+    line-height: 2em;
   }
 
   & > input {
@@ -54,7 +55,7 @@ form {
     color: #212121;
     background-color: #f5f5f5;
 
-    & > img {
+    & > a > img {
       width: 285.467px;
       height: 187px;
     }
