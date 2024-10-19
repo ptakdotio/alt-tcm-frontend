@@ -1,10 +1,8 @@
-# Alternative TCM Frontend
+# Alternative TCM Search Engine
 
 ## What is this?
 
-This is a simple frontend webpage for checking what movies are available to
-watch on TCM. It uses TCM's API, but adds filters so you can pare down the
-list.
+This is a web application that provides an alternative search engine for movies on TCM (Turner Classic Movies).
 
 ## How do I use it?
 
@@ -12,21 +10,9 @@ Just [click here](http://tcm.ptak.io/) and give it a try!
 
 ## Why did you make this?
 
-I find TCM's web interface kind of cumbersome. You can't filter on more than
-one genre or by release year, and clicking on a movie takes you to a new
-webpage. I would rather just see a filterable, sortable list of what is
-available, which is what this page does.
+I find TCM's search function kind of cumbersome. You can't filter on more than one genre or by release year, and clicking on a movie takes you to a new webpage. I would rather just see a filterable, sortable list of what is available, which is what this page does.
 
 ## Why isn't there an option to filter by such-and-such?
 
-Go ahead and open an issue! I plan on adding lots more options to this program
-in case anyone finds them useful.
-
-## What is the `gimme-tcm-movies.py` file?
-
-I originally wrote this program as a Python script, but pretty soon I re-wrote
-essentially the same functionality in an frontend-only Elm app. I think it is
-nicer to use that way, but you can still use the original script if you desire.
-
-Just run `python gimme-tcm-movies.py --help` for basic usage information.
+Go ahead and open an issue! I plan on adding lots more options to this program in case anyone finds them useful.
 

@@ -1,8 +1,0 @@
-# Ignore packages and caches
-node_modules/*
-.sass-cache/*
-elm-stuff/*
-
-# Bundled app
-dist/*
-
